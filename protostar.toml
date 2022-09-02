@@ -1,0 +1,29 @@
+["protostar.config"]
+protostar_version = "0.2.6"
+
+["protostar.project"]
+libs_path = "lib"
+
+["protostar.shared_command_configs"]
+cairo_path = ["./lib/cairo_contracts/src"]
+stdout-on-success = true
+
+["protostar.contracts"]
+counter = [
+    "src/Counter.cairo",
+]
+
+faucet = [
+    "src/Faucet.cairo",
+]
+
+vault = [
+    "src/Vault.cairo",
+]
+
+vending_machine = [
+    "src/Vending_Machine.cairo",
+]
+
+[profile.testnet.protostar.deploy]
+network="alpha-goerli"
