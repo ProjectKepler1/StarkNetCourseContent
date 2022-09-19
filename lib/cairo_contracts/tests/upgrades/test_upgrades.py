@@ -1,7 +1,8 @@
 import pytest
-from starkware.starknet.testing.starknet import Starknet
 from signers import MockSigner
 from utils import (
+    State,
+    Account,
     assert_revert,
     assert_revert_entry_point,
     assert_event_emitted,
@@ -19,7 +20,7 @@ signer = MockSigner(123456789987654321)
 
 @pytest.fixture(scope='module')
 def contract_classes():
-    account_cls = get_contract_class('Account')
+    account_cls = Account.get_class
     v1_cls = get_contract_class('UpgradesMockV1')
     v2_cls = get_contract_class('UpgradesMockV2')
     proxy_cls = get_contract_class('Proxy')
@@ -29,16 +30,11 @@ def contract_classes():
 
 @pytest.fixture(scope='module')
 async def proxy_init(contract_classes):
-    account_cls, v1_cls, v2_cls, proxy_cls = contract_classes
-    starknet = await Starknet.empty()
-    account1 = await starknet.deploy(
-        contract_class=account_cls,
-        constructor_calldata=[signer.public_key]
-    )
-    account2 = await starknet.deploy(
-        contract_class=account_cls,
-        constructor_calldata=[signer.public_key]
-    )
+    _, v1_cls, v2_cls, proxy_cls = contract_classes
+    starknet = await State.init()
+    account1 = await Account.deploy(signer.public_key)
+    account2 = await Account.deploy(signer.public_key)
+
     v1_decl = await starknet.declare(
         contract_class=v1_cls,
     )
@@ -136,7 +132,7 @@ async def test_upgrade(proxy_factory):
     execution_info = await signer.send_transaction(
         admin, proxy.contract_address, 'getValue1', []
     )
-    assert execution_info.result.response == [VALUE_1]
+    assert execution_info.call_info.retdata[1] == VALUE_1
 
     # upgrade
     await signer.send_transaction(
@@ -149,7 +145,7 @@ async def test_upgrade(proxy_factory):
     execution_info = await signer.send_transaction(
         admin, proxy.contract_address, 'getValue1', []
     )
-    assert execution_info.result.response == [VALUE_1]
+    assert execution_info.call_info.retdata[1] == VALUE_1
 
 
 @pytest.mark.asyncio
@@ -237,12 +233,13 @@ async def test_implementation_v2(after_upgrade):
     )
 
     expected = [
+        3,                              # number of return values
         v2_decl.class_hash,             # getImplementationHash
         admin.contract_address,         # getAdmin
         VALUE_1                         # getValue1
     ]
 
-    assert execution_info.result.response == expected
+    assert execution_info.call_info.retdata == expected
 
 #
 # v2 functions
@@ -263,7 +260,7 @@ async def test_set_admin(after_upgrade):
     execution_info = await signer.send_transaction(
         admin, proxy.contract_address, 'getAdmin', []
     )
-    assert execution_info.result.response == [new_admin.contract_address]
+    assert execution_info.call_info.retdata[1] == new_admin.contract_address
 
 
 @pytest.mark.asyncio
@@ -292,7 +289,7 @@ async def test_v2_functions_pre_and_post_upgrade(proxy_factory):
     await assert_revert_entry_point(
         signer.send_transaction(
             admin, proxy.contract_address, 'getValue2', []
-        ), 
+        ),
         invalid_selector='getValue2'
     )
 
@@ -346,7 +343,8 @@ async def test_v2_functions_pre_and_post_upgrade(proxy_factory):
     )
 
     expected = [
+        2,                              # number of return values
         VALUE_2,                        # getValue2
         new_admin.contract_address      # getAdmin
     ]
-    assert execution_info.result.response == expected
+    assert execution_info.call_info.retdata == expected

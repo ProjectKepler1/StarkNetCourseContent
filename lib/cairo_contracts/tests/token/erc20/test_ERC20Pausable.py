@@ -1,9 +1,8 @@
 import pytest
-from starkware.starknet.testing.starknet import Starknet
 from signers import MockSigner
 from utils import (
-    TRUE, FALSE, to_uint, str_to_felt, assert_revert, 
-    get_contract_class, cached_contract
+    TRUE, FALSE, to_uint, str_to_felt, assert_revert,
+    get_contract_class, cached_contract, State, Account
 )
 
 
@@ -19,7 +18,7 @@ DECIMALS = 18
 
 @pytest.fixture(scope='module')
 def contract_classes():
-    account_cls = get_contract_class('Account')
+    account_cls = Account.get_class
     erc20_cls = get_contract_class('ERC20Pausable')
 
     return account_cls, erc20_cls
@@ -28,15 +27,9 @@ def contract_classes():
 @pytest.fixture(scope='module')
 async def erc20_init(contract_classes):
     account_cls, erc20_cls = contract_classes
-    starknet = await Starknet.empty()
-    account1 = await starknet.deploy(
-        contract_class=account_cls,
-        constructor_calldata=[signer.public_key]
-    )
-    account2 = await starknet.deploy(
-        contract_class=account_cls,
-        constructor_calldata=[signer.public_key]
-    )
+    starknet = await State.init()
+    account1 = await Account.deploy(signer.public_key)
+    account2 = await Account.deploy(signer.public_key)
     erc20 = await starknet.deploy(
         contract_class=erc20_cls,
         constructor_calldata=[
@@ -72,19 +65,19 @@ def token_factory(contract_classes, erc20_init):
 async def test_constructor(token_factory):
     token, owner, _ = token_factory
 
-    execution_info = await token.name().invoke()
+    execution_info = await token.name().execute()
     assert execution_info.result == (NAME,)
 
-    execution_info = await token.symbol().invoke()
+    execution_info = await token.symbol().execute()
     assert execution_info.result == (SYMBOL,)
 
-    execution_info = await token.decimals().invoke()
+    execution_info = await token.decimals().execute()
     assert execution_info.result.decimals == DECIMALS
 
-    execution_info = await token.balanceOf(owner.contract_address).invoke()
+    execution_info = await token.balanceOf(owner.contract_address).execute()
     assert execution_info.result.balance == INIT_SUPPLY
 
-    execution_info = await token.paused().invoke()
+    execution_info = await token.paused().execute()
     assert execution_info.result.paused == FALSE
 
 
@@ -94,7 +87,7 @@ async def test_pause(token_factory):
 
     await signer.send_transaction(owner, token.contract_address, 'pause', [])
 
-    execution_info = await token.paused().invoke()
+    execution_info = await token.paused().execute()
     assert execution_info.result.paused == TRUE
 
     await assert_revert(signer.send_transaction(
@@ -150,7 +143,7 @@ async def test_unpause(token_factory):
     await signer.send_transaction(owner, token.contract_address, 'pause', [])
     await signer.send_transaction(owner, token.contract_address, 'unpause', [])
 
-    execution_info = await token.paused().invoke()
+    execution_info = await token.paused().execute()
     assert execution_info.result.paused == FALSE
 
     success = await signer.send_transaction(
@@ -159,7 +152,7 @@ async def test_unpause(token_factory):
         'transfer',
         [other.contract_address, *AMOUNT]
     )
-    assert success.result.response == [TRUE]
+    assert success.call_info.retdata[1] == TRUE
 
     success = await signer.send_transaction(
         owner,
@@ -167,7 +160,7 @@ async def test_unpause(token_factory):
         'approve',
         [other.contract_address, *AMOUNT]
     )
-    assert success.result.response == [TRUE]
+    assert success.call_info.retdata[1] == TRUE
 
     success = await signer.send_transaction(
         other,
@@ -175,7 +168,7 @@ async def test_unpause(token_factory):
         'transferFrom',
         [owner.contract_address, other.contract_address, *AMOUNT]
     )
-    assert success.result.response == [TRUE]
+    assert success.call_info.retdata[1] == TRUE
 
     success = await signer.send_transaction(
         owner,
@@ -183,7 +176,7 @@ async def test_unpause(token_factory):
         'increaseAllowance',
         [other.contract_address, *AMOUNT]
     )
-    assert success.result.response == [TRUE]
+    assert success.call_info.retdata[1] == TRUE
 
     success = await signer.send_transaction(
         owner,
@@ -191,7 +184,7 @@ async def test_unpause(token_factory):
         'decreaseAllowance',
         [other.contract_address, *AMOUNT]
     )
-    assert success.result.response == [TRUE]
+    assert success.call_info.retdata[1] == TRUE
 
 
 @pytest.mark.asyncio

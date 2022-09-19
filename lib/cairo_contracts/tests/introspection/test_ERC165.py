@@ -1,11 +1,11 @@
 import pytest
-from starkware.starknet.testing.starknet import Starknet
 from utils import (
     assert_revert,
     get_contract_class,
     cached_contract,
     TRUE,
-    FALSE
+    FALSE,
+    State
 )
 
 
@@ -15,13 +15,13 @@ INVALID_ID = 0xffffffff
 OTHER_ID = 0x12345678
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 async def erc165_factory():
     # class
     erc165_cls = get_contract_class("tests/mocks/ERC165.cairo", is_path=True)
 
     # deployment
-    starknet = await Starknet.empty()
+    starknet = await State.init()
     erc165 = await starknet.deploy(contract_class=erc165_cls)
 
     # cache
@@ -54,7 +54,7 @@ async def test_register_interface(erc165_factory):
     assert execution_info.result == (FALSE,)
 
     # register interface
-    await erc165.registerInterface(OTHER_ID).invoke()
+    await erc165.registerInterface(OTHER_ID).execute()
 
     execution_info = await erc165.supportsInterface(OTHER_ID).call()
     assert execution_info.result == (TRUE,)
@@ -65,6 +65,6 @@ async def test_register_invalid_interface(erc165_factory):
     erc165 = erc165_factory
 
     await assert_revert(
-        erc165.registerInterface(INVALID_ID).invoke(),
+        erc165.registerInterface(INVALID_ID).execute(),
         reverted_with="ERC165: invalid interface id"
     )
