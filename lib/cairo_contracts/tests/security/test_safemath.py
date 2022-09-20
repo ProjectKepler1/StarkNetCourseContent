@@ -1,15 +1,14 @@
 import pytest
-from starkware.starknet.testing.starknet import Starknet
 from utils import (
     MAX_UINT256, assert_revert, add_uint, sub_uint,
-    mul_uint, div_rem_uint, to_uint, contract_path,
-    get_contract_class
+    mul_uint, div_rem_uint, to_uint,
+    get_contract_class, State
 )
 
 
 @pytest.fixture(scope='module')
 async def safemath_mock():
-    starknet = await Starknet.empty()
+    starknet = await State.init()
     safemath = await starknet.deploy(
         contract_class=get_contract_class("SafeMathMock")
     )
@@ -25,7 +24,7 @@ async def test_add(safemath_mock):
     b = to_uint(1234)
     c = add_uint(a, b)
 
-    execution_info = await safemath.uint256_add(a, b).invoke()
+    execution_info = await safemath.uint256_add(a, b).execute()
     assert execution_info.result == (c,)
 
 
@@ -37,7 +36,7 @@ async def test_add_overflow(safemath_mock):
     b = to_uint(1)
 
     await assert_revert(
-        safemath.uint256_add(a, b).invoke(),
+        safemath.uint256_add(a, b).execute(),
         reverted_with="SafeUint256: addition overflow"
     )
 
@@ -50,7 +49,7 @@ async def test_sub_lt(safemath_mock):
     b = to_uint(1234)
     c = sub_uint(a, b)
 
-    execution_info = await safemath.uint256_sub_lt(a, b).invoke()
+    execution_info = await safemath.uint256_sub_lt(a, b).execute()
     assert execution_info.result == (c,)
 
 
@@ -62,7 +61,7 @@ async def test_sub_lt_equal(safemath_mock):
     b = MAX_UINT256
 
     await assert_revert(
-        safemath.uint256_sub_lt(a, b).invoke(),
+        safemath.uint256_sub_lt(a, b).execute(),
         reverted_with="SafeUint256: subtraction overflow or the difference equals zero"
     )
 
@@ -75,7 +74,7 @@ async def test_sub_lt_overflow(safemath_mock):
     b = to_uint(56789)
 
     await assert_revert(
-        safemath.uint256_sub_lt(a, b).invoke(),
+        safemath.uint256_sub_lt(a, b).execute(),
         reverted_with="SafeUint256: subtraction overflow or the difference equals zero"
     )
 
@@ -88,7 +87,7 @@ async def test_sub_le(safemath_mock):
     b = to_uint(1234)
     c = sub_uint(a, b)
 
-    execution_info = await safemath.uint256_sub_le(a, b).invoke()
+    execution_info = await safemath.uint256_sub_le(a, b).execute()
     assert execution_info.result == (c,)
 
 
@@ -100,7 +99,7 @@ async def test_sub_le_equal(safemath_mock):
     b = MAX_UINT256
     c = sub_uint(a, b)
 
-    execution_info = await safemath.uint256_sub_le(a, b).invoke()
+    execution_info = await safemath.uint256_sub_le(a, b).execute()
     assert execution_info.result == (c,)
 
 
@@ -112,10 +111,10 @@ async def test_sub_le_overflow(safemath_mock):
     b = to_uint(56789)
 
     await assert_revert(
-        safemath.uint256_sub_le(a, b).invoke(),
+        safemath.uint256_sub_le(a, b).execute(),
         reverted_with="SafeUint256: subtraction overflow"
     )
-    await assert_revert(safemath.uint256_sub_le(a, b).invoke())
+    await assert_revert(safemath.uint256_sub_le(a, b).execute())
 
 
 @pytest.mark.asyncio
@@ -126,7 +125,7 @@ async def test_mul(safemath_mock):
     b = to_uint(56789)
     c = mul_uint(a, b)
 
-    execution_info = await safemath.uint256_mul(a, b).invoke()
+    execution_info = await safemath.uint256_mul(a, b).execute()
     assert execution_info.result == (c,)
 
 
@@ -138,10 +137,10 @@ async def test_mul_zero(safemath_mock):
     b = to_uint(56789)
     c = to_uint(0)
 
-    execution_info = await safemath.uint256_mul(a, b).invoke()
+    execution_info = await safemath.uint256_mul(a, b).execute()
     assert execution_info.result == (c,)
 
-    execution_info = await safemath.uint256_mul(b, a).invoke()
+    execution_info = await safemath.uint256_mul(b, a).execute()
     assert execution_info.result == (c,)
 
 
@@ -153,7 +152,7 @@ async def test_mul_overflow(safemath_mock):
     b = to_uint(2)
 
     await assert_revert(
-        safemath.uint256_mul(a, b).invoke(),
+        safemath.uint256_mul(a, b).execute(),
         reverted_with="SafeUint256: multiplication overflow"
     )
 
@@ -166,7 +165,7 @@ async def test_div(safemath_mock):
     b = to_uint(56789)
     (c, r) = div_rem_uint(a, b)
 
-    execution_info = await safemath.uint256_div(a, b).invoke()
+    execution_info = await safemath.uint256_div(a, b).execute()
     assert execution_info.result == (c, r)
 
 
@@ -178,7 +177,7 @@ async def test_div_zero_dividend(safemath_mock):
     b = to_uint(56789)
     (c, r) = div_rem_uint(a, b)
 
-    execution_info = await safemath.uint256_div(a, b).invoke()
+    execution_info = await safemath.uint256_div(a, b).execute()
     assert execution_info.result == (c, r)
 
 
@@ -190,7 +189,7 @@ async def test_div_zero_divisor(safemath_mock):
     b = to_uint(0)
 
     await assert_revert(
-        safemath.uint256_div(a, b).invoke(),
+        safemath.uint256_div(a, b).execute(),
         reverted_with="SafeUint256: divisor cannot be zero"
     )
 
@@ -203,5 +202,5 @@ async def test_div_uneven_division(safemath_mock):
     b = to_uint(5678)
     (c, r) = div_rem_uint(a, b)
 
-    execution_info = await safemath.uint256_div(a, b).invoke()
+    execution_info = await safemath.uint256_div(a, b).execute()
     assert execution_info.result == (c, r)

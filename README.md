@@ -1,13 +1,15 @@
-# StarkNet Course Smart Contract Development Block
+# StarkNet Course Content
 
-Exercise 1:
-Counter.cairo 
+## Block 1
 
-Exercise 2:
-Faucet.cairo
+- [Exercise 1: Counter.cairo](src/Counter.cairo)
+- [Exercise 2: Faucet.cairo](src/Faucet.cairo)
+- [Exercise 3: Vault.cairo](src/Vault.cairo)
 
-Exercise 3:
-Vault.cairo
+## Block 2
+
+- [Exercise 4: Oracle.cairo](src/Oracle.cairo)
+- [Exercise 5: Proxy.cairo](src/Proxy.cairo)
 
 # Setup
 
