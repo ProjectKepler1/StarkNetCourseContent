@@ -7,8 +7,6 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.starknet.common.syscalls import (get_block_number, get_caller_address)
-from starkware.cairo.common.math import assert_lt
 
 @event
 func value_added(time: felt, value: felt) {
@@ -34,6 +32,7 @@ func ingest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(val
     // TODO(assignment): check ownership
     // TODO(assignment): get block number
     // TODO(assignment): check if there's already a value set for this block
+    // TODO(assignment): bind the value within the range 0, 100
     // TODO(assignment): write to the timeseries
     // TODO(assignment): emit the `value_added` event
 
