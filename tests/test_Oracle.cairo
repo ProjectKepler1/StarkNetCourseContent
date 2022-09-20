@@ -19,7 +19,7 @@ func __setup__() {
     %{
         context.owner = 1
 
-        deployment = deploy_contract("./src/Oracle.solution.cairo", [context.owner])
+        deployment = deploy_contract("./src/Oracle.cairo", [context.owner])
         context.contract_address = deployment.contract_address
     %}
 

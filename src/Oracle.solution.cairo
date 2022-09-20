@@ -7,8 +7,9 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.starknet.common.syscalls import (get_block_number, get_caller_address)
+from starkware.starknet.common.syscalls import get_block_number
 from starkware.cairo.common.math import assert_lt
+from openzeppelin.access.ownable.library import Ownable
 
 @event
 func value_added(time: felt, value: felt) {
@@ -24,18 +25,26 @@ func latest_time() -> (time: felt) {
 
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(owner: felt) {
-    // TODO(assignment): initialize ownership
+    Ownable.initializer(owner);
 
     return ();
 }
 
 @external
 func ingest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(value: felt) {
-    // TODO(assignment): check ownership
-    // TODO(assignment): get block number
-    // TODO(assignment): check if there's already a value set for this block
-    // TODO(assignment): write to the timeseries
-    // TODO(assignment): emit the `value_added` event
+    Ownable.assert_only_owner();
+
+    let (tip) = latest_time.read();
+    let (time) = get_block_number();
+
+    with_attr error_message("Value already ingested at current block") {
+        assert_lt(tip, time);
+    }
+
+    timeseries.write(time, value);
+    latest_time.write(time);
+
+    value_added.emit(time, value);
 
     return ();
 }
