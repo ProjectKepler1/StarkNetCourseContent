@@ -55,7 +55,7 @@ func ingest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(val
     timeseries.write(time, processed_value);
     latest_time.write(time);
 
-    value_added.emit(time, value);
+    value_added.emit(time, processed_value);
 
     return ();
 }
