@@ -25,5 +25,9 @@ vending_machine = [
     "src/Vending_Machine.cairo",
 ]
 
+oracle = [
+    "src/Oracle.cairo",
+]
+
 [profile.testnet.protostar.deploy]
 network="alpha-goerli"
